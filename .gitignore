@@ -1,0 +1,33 @@
+# Python Virtual Environment
+.venv/
+env/
+venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets (CRITICAL)
+.env
+*.env.local
+
+# Database & runtime data
+data/
+*.db
+*.db.bak
+*.sqlite
+*.sqlite3
+
+# Telegram sessions
+sessions/
+*.session
+*.session-journal
+
+# Temporary / Scratchpad test files
+scratch/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

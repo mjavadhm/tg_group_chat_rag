@@ -1,0 +1,19 @@
+[Unit]
+Description=Telegram RAG Bot Service (tg_group_chat_rag)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/tg_group_chat_rag
+ExecStart=/root/tg_group_chat_rag/.venv/bin/python main.py bot
+Restart=always
+RestartSec=10
+EnvironmentFile=/root/tg_group_chat_rag/.env
+
+# لاگ‌گیری ساختاریافته در journalctl
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

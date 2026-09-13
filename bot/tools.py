@@ -178,7 +178,7 @@ TOOLS_DEFINITIONS = [
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "عبارت فنی جهت جستجو در وب یا یوتیوب (مثلاً: Bajaj Dominar 400 spark plug replacement youtube)",
+                        "description": "عبارت فنی جهت جستجو در وب یا یوتیوب (مثلاً: Bajaj Dominar 250 spark plug replacement youtube)",
                     },
                 },
                 "required": ["query"],

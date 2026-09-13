@@ -37,6 +37,10 @@ async def ingest_incoming_message(message: Message, bot_id: int | None = None) -
     if message.from_user and (message.from_user.is_bot or (bot_id and message.from_user.id == bot_id)):
         return
 
+    # چشم‌پوشی از پیام‌های چت خصوصی (پی‌وی نباید وارد آرشیو دانش گروه و Qdrant شود)
+    if message.chat and message.chat.type == "private":
+        return
+
     text = (message.text or message.caption or "").strip()
     if text.startswith("/"):
         return

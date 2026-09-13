@@ -142,15 +142,16 @@ class ThreadTrackerMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: Any, data: dict[str, Any]) -> Any:
         if isinstance(event, Message):
             record_message(event)
-            # لانچ تسک ایندکس زنده به صورت کاملاً غیرمسدودکننده در پس‌زمینه
-            try:
-                import asyncio
-                from bot.live_indexer import ingest_incoming_message
-                bot_obj = data.get("bot")
-                bot_id = bot_obj.id if bot_obj else None
-                asyncio.create_task(ingest_incoming_message(event, bot_id))
-            except Exception as e:
-                logger.debug(f"Could not spawn live ingest task: {e}")
+            # لانچ تسک ایندکس زنده فقط برای پیام‌های گروه
+            if event.chat and event.chat.type in ("group", "supergroup"):
+                try:
+                    import asyncio
+                    from bot.live_indexer import ingest_incoming_message
+                    bot_obj = data.get("bot")
+                    bot_id = bot_obj.id if bot_obj else None
+                    asyncio.create_task(ingest_incoming_message(event, bot_id))
+                except Exception as e:
+                    logger.debug(f"Could not spawn live ingest task: {e}")
 
         return await handler(event, data)
 

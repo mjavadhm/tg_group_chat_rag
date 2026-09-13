@@ -15,7 +15,12 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramMigrateToChat
-from aiogram.types import BotCommand, ErrorEvent
+from aiogram.types import (
+    BotCommand,
+    BotCommandScopeChat,
+    BotCommandScopeDefault,
+    ErrorEvent,
+)
 from rich.console import Console
 
 from bot.config import bot_settings
@@ -31,14 +36,26 @@ logger = logging.getLogger("bot")
 
 
 async def setup_bot_commands(bot: Bot) -> None:
-    """تنظیم منوی پیش‌فرض دستورات ربات در تلگرام."""
-    commands = [
-        BotCommand(command="start", description="شروع گفتگو و معرفی"),
+    """تنظیم منوی دستورات تلگرام با تفکیک دسترسی کاربران عادی و ادمین‌ها."""
+    # منوی پیش‌فرض عمومی (برای همه کاربران عادی) - دستورات ادمین مخفی هستند
+    public_commands = [
+        BotCommand(command="start", description="شروع گفتگو و راهنما"),
         BotCommand(command="help", description="راهنمای نحوه پرسش"),
-        BotCommand(command="config", description="داشبورد تنظیمات (مخصوص ادمین)"),
+    ]
+    await bot.set_my_commands(public_commands, scope=BotCommandScopeDefault())
+
+    # منوی مخصوص ادمین‌ها (فقط در چت خصوصی ادمین‌های مشخص‌شده در ADMIN_IDS نمایش داده می‌شود)
+    admin_commands = [
+        BotCommand(command="start", description="شروع گفتگو"),
+        BotCommand(command="help", description="راهنمای پرسش"),
+        BotCommand(command="config", description="داشبورد تنظیمات ادمین"),
         BotCommand(command="stats", description="آمار پیام‌های دیتابیس"),
     ]
-    await bot.set_my_commands(commands)
+    for admin_id in bot_settings.admin_ids:
+        try:
+            await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=admin_id))
+        except Exception as e:
+            logger.debug(f"Could not set admin commands for user {admin_id}: {e}")
 
 
 async def start_bot() -> None:

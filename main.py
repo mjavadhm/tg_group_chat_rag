@@ -147,6 +147,7 @@ def main():
     mig_parser = subparsers.add_parser("migrate-qdrant", help="انتقال وکتورهای محلی به Qdrant Cloud یا سرور مجزا")
     mig_parser.add_argument("--url", type=str, default=None, help="آدرس کلاستر ابری Qdrant")
     mig_parser.add_argument("--api-key", type=str, default=None, help="کلید دسترسی API")
+    mig_parser.add_argument("--batch-size", "-b", type=int, default=50, help="تعداد وکتورها در هر درخواست (پیش‌فرض: ۵۰)")
 
     args = parser.parse_args()
 
@@ -177,7 +178,7 @@ def main():
         show_recent(limit=args.limit)
     elif args.command == "migrate-qdrant":
         from vector_store.migrate_to_cloud import migrate
-        migrate(url=args.url, api_key=args.api_key)
+        migrate(url=args.url, api_key=args.api_key, batch_size=args.batch_size)
     else:
         parser.print_help()
 

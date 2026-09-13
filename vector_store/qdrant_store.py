@@ -73,7 +73,7 @@ class QdrantVectorStore:
 
         # اتصال به سرور ریموت یا دیتابیس لوکال Qdrant
         if self.url:
-            self.client = QdrantClient(url=self.url, api_key=self.api_key)
+            self.client = QdrantClient(url=self.url, api_key=self.api_key, timeout=60.0)
         else:
             self.client = QdrantClient(path=str(self.db_path))
 

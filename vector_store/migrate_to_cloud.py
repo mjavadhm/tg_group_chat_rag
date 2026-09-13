@@ -25,7 +25,7 @@ def migrate(
     api_key: str | None = None,
     collection_name: str = "motor_threads",
     sqlite_path: Path | str = "data/qdrant_db/collection/motor_threads/storage.sqlite",
-    batch_size: int = 250,
+    batch_size: int = 50,
     skip_test_points: bool = True,
 ) -> bool:
     target_url = url or os.getenv("QDRANT_URL")
@@ -39,10 +39,11 @@ def migrate(
     console.print(f"[bold cyan]🚀 آغاز انتقال داده‌ها به پایگاه ابری Qdrant:[/bold cyan]")
     console.print(f"  • سرور مقصد: [yellow]{target_url}[/yellow]")
     console.print(f"  • نام کالکشن: [green]{collection_name}[/green]")
+    console.print(f"  • حجم هر دسته (Batch Size): [magenta]{batch_size}[/magenta]")
 
-    # ۱. اتصال به سرور ابری و تست ارتباط
+    # ۱. اتصال به سرور ابری و تست ارتباط (با تایم‌اوت ۱۲۰ ثانیه برای اینترنت‌های ناپایدار و پراکسی)
     try:
-        remote_client = QdrantClient(url=target_url, api_key=target_api_key)
+        remote_client = QdrantClient(url=target_url, api_key=target_api_key, timeout=120.0)
         existing_colls = [c.name for c in remote_client.get_collections().collections]
         console.print(f"[green]✓ اتصال به Qdrant ابری با موفقیت برقرار شد.[/green]")
     except Exception as e:
@@ -114,10 +115,22 @@ def migrate(
                     console.print(f"[dim red]خطا در خواندن رکورد: {ex}[/dim red]")
 
             if points_batch:
-                remote_client.upsert(
-                    collection_name=collection_name,
-                    points=points_batch,
-                )
+                import time
+                for attempt in range(1, 6):
+                    try:
+                        remote_client.upsert(
+                            collection_name=collection_name,
+                            points=points_batch,
+                            wait=False,
+                        )
+                        break
+                    except Exception as err:
+                        if attempt == 5:
+                            console.print(f"\n[bold red]خطا پس از ۵ بار تلاش برای بچ {transferred}:[/bold red] {err}")
+                            raise err
+                        console.print(f"[dim yellow]تلاش مجدد بچ ({attempt}/5)...[/dim yellow]")
+                        time.sleep(2 * attempt)
+
                 transferred += len(points_batch)
                 progress.update(task, advance=len(points_batch))
 

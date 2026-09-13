@@ -63,6 +63,16 @@ class ShouldRespond(BaseFilter):
         # استخراج زنجیره گفتگو بر اساس ترد ریپلای (تگ بدون ریپلای = سشن صفر)
         thread_messages = extract_thread_context(message, bot_info.id)
 
+        # در چت خصوصی اگر کاربر صریحاً ریپلای نزده باشد، آخرین پیام‌های تاریخچه شخصی‌اش واکشی می‌شود
+        if is_private and not thread_messages and message.from_user:
+            try:
+                from core.db import get_db
+                from core.repo import get_private_history
+                with get_db() as conn:
+                    thread_messages = get_private_history(conn, message.from_user.id, limit=8)
+            except Exception:
+                pass
+
         user_name = "کاربر"
         if message.from_user:
             user_name = message.from_user.full_name or message.from_user.username or "کاربر"

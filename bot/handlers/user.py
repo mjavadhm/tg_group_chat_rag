@@ -20,15 +20,15 @@ user_router = Router()
 @user_router.message(CommandStart())
 async def cmd_start(message: Message, bot: Bot):
     bot_info = await bot.get_me()
-    welcome_text = f"""سلام! 👋
-من <b>دستیار هوشمند تجربیات گروه موتورسیکلت</b> هستم. 🏍️
+    welcome_text = f"""درود. ⚙️
+من <b>سامانه تحلیل فنی و پایگاه دانش تخصصی موتورسیکلت</b> (خانواده باجاج دومینار، پالسار، دوک و موتورهای انژکتوری) هستم.
 
-تمام گفتگوها، نظرات فنی، تجربیات رفع نقص و توصیه‌های اعضای گروه را در حافظه دارم و می‌توانم به سوالاتت با <b>ذکر دقیق پیام منبع</b> پاسخ دهم.
+با اتکا به آرشیو هزاران تجربه فنی اعضای گروه، گزارش‌های میدانی عیب‌یابی، مبانی مهندسی مکانیک و مستندات رسمی کارخانه، آماده‌ام به چالش‌ها و پرسش‌های فنی شما با <b>تحلیل دقیق و استناد مستقیم به سوابق گروه</b> پاسخ دهم.
 
-💡 <b>نحوه استفاده:</b>
-• در چت خصوصی (پی‌وی): فقط سوالت را بنویس و بفرست.
-• در گروه: روی پیام من ریپلای بزن یا من را منشن کن:
-  <code>@{bot_info.username} روغن مناسب برای فصل گرما چیه؟</code>
+💡 <b>راهنمای ارتباط:</b>
+• در چت خصوصی (پی‌وی): شرح مشکل فنی یا سوال خود را ارسال فرمایید.
+• در گروه: با منشن کردن یا ریپلای روی پیام‌های من مطرح کنید:
+  <code>@{bot_info.username} علت و راهکار رفع صدای تق‌تق انجین در دور موتور ۵۰۰۰؟</code>
 """
     try:
         await message.reply(welcome_text, parse_mode="HTML")
@@ -246,6 +246,23 @@ async def handle_answer_now(callback: CallbackQuery, bot: Bot):
         except Exception as err:
             await orig_message.reply(fast_answer_html[:4000], parse_mode=None)
 
+    # ثبت پاسخ در جدول اختصاصی گفتگوهای خصوصی
+    if is_private_fast and callback.from_user:
+        try:
+            from core.db import get_db
+            from core.repo import save_private_message
+            with get_db() as conn:
+                save_private_message(
+                    conn=conn,
+                    user_id=callback.from_user.id,
+                    user_name="Assistant",
+                    role="assistant",
+                    reply_to_msg_id=orig_message.message_id if orig_message else None,
+                    text=str(fast_answer_html),
+                )
+        except Exception as ex:
+            logger.debug(f"Error saving fast private assistant message: {ex}")
+
 
 @user_router.message(ShouldRespond())
 async def handle_rag_question(
@@ -307,6 +324,25 @@ async def handle_rag_question(
     last_stream_time = time.time()
     is_private_chat = message.chat.type == "private"
     stream_draft_id = int(time.time()) % 100000  # شناسه یکتا برای Draft
+
+    # ثبت پیام سوال کاربر در جدول اختصاصی گفتگوهای خصوصی
+    if is_private_chat and message.from_user:
+        try:
+            from core.db import get_db
+            from core.repo import save_private_message
+            with get_db() as conn:
+                save_private_message(
+                    conn=conn,
+                    user_id=message.from_user.id,
+                    user_name=sender_name,
+                    user_username=message.from_user.username,
+                    role="user",
+                    message_id=message.message_id,
+                    reply_to_msg_id=message.reply_to_message.message_id if message.reply_to_message else None,
+                    text=query,
+                )
+        except Exception as ex:
+            logger.debug(f"Error saving private user message: {ex}")
 
     async def on_stream(reasoning_text: str, content_text: str):
         nonlocal last_stream_time
@@ -490,3 +526,20 @@ async def handle_rag_question(
                 await message.reply(answer_html[:4000], parse_mode=None)
             except Exception:
                 pass
+
+    # ثبت پاسخ نهایی دستیار در جدول اختصاصی گفتگوهای خصوصی
+    if is_private_chat and message.from_user:
+        try:
+            from core.db import get_db
+            from core.repo import save_private_message
+            with get_db() as conn:
+                save_private_message(
+                    conn=conn,
+                    user_id=message.from_user.id,
+                    user_name="Assistant",
+                    role="assistant",
+                    reply_to_msg_id=message.message_id,
+                    text=str(answer_html),
+                )
+        except Exception as ex:
+            logger.debug(f"Error saving private assistant message: {ex}")

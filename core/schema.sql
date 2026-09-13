@@ -75,3 +75,19 @@ CREATE TABLE IF NOT EXISTS crawl_state (
     last_run_at TEXT,
     status TEXT DEFAULT 'idle'   -- 'running', 'completed', 'idle'
 );
+
+-- جدول مجزا برای نگهداری تاریخچه گفتگوهای خصوصی (پی‌وی) هر کاربر با ربات
+CREATE TABLE IF NOT EXISTS private_conversations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    user_name TEXT,
+    user_username TEXT,
+    role TEXT NOT NULL,         -- 'user' یا 'assistant'
+    message_id INTEGER,
+    reply_to_msg_id INTEGER,
+    text TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_private_user_time ON private_conversations(user_id, created_at);
+

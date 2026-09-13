@@ -119,3 +119,86 @@ def get_stats(conn: sqlite3.Connection) -> dict[str, Any]:
         "last_message_date": max_date,
         "media_breakdown": {row["mtype"]: row["count"] for row in media_breakdown},
     }
+
+
+def save_private_message(
+    conn: sqlite3.Connection,
+    user_id: int,
+    role: str,
+    text: str,
+    user_name: str | None = None,
+    user_username: str | None = None,
+    message_id: int | None = None,
+    reply_to_msg_id: int | None = None,
+) -> int:
+    """ذخیره پیام گفتگوی خصوصی در جدول مجزای private_conversations."""
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS private_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            user_name TEXT,
+            user_username TEXT,
+            role TEXT NOT NULL,
+            message_id INTEGER,
+            reply_to_msg_id INTEGER,
+            text TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        """
+    )
+    cursor.execute(
+        """
+        INSERT INTO private_conversations (
+            user_id, user_name, user_username, role, message_id, reply_to_msg_id, text
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (user_id, user_name, user_username, role, message_id, reply_to_msg_id, text),
+    )
+    return cursor.lastrowid or 0
+
+
+def get_private_history(
+    conn: sqlite3.Connection,
+    user_id: int,
+    limit: int = 10,
+) -> list[dict[str, str]]:
+    """واکشی آخرین پیام‌های گفتگوی خصوصی یک کاربر برای بازسازی کانتکست گفتگو."""
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS private_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            user_name TEXT,
+            user_username TEXT,
+            role TEXT NOT NULL,
+            message_id INTEGER,
+            reply_to_msg_id INTEGER,
+            text TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        """
+    )
+    cursor.execute(
+        """
+        SELECT role, text
+        FROM private_conversations
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    )
+    rows = cursor.fetchall()
+    history: list[dict[str, str]] = []
+    for r in reversed(rows):
+        role_val = r["role"] if isinstance(r, sqlite3.Row) else r[0]
+        text_val = r["text"] if isinstance(r, sqlite3.Row) else r[1]
+        history.append({
+            "role": role_val,
+            "content": text_val[:1500],
+        })
+    return history
+
